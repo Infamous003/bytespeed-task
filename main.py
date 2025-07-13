@@ -88,10 +88,21 @@ def identify_contact(contact: ContactCreate,
             if c.linkPrecedence == LinkPrecedence.secondary:
                 secondaryIds.add(c.id)
 
+        emails_list = list(emails)
+        phone_numbers_list = list(phoneNumbers)
+        
+        if primary_contact:
+            if primary_contact.email in emails_list:
+                emails_list.remove(primary_contact.email)
+                emails_list.insert(0, primary_contact.email)
+            if primary_contact.phoneNumber in phone_numbers_list:
+                phone_numbers_list.remove(primary_contact.phoneNumber)
+                phone_numbers_list.insert(0, primary_contact.phoneNumber)
+
         contact_response = IdentificationModel(
             primaryContactId=primary_contact.id,
-            emails=list(emails),
-            phoneNumbers=list(phoneNumbers),
+            emails=emails_list,
+            phoneNumbers=phone_numbers_list,
             secondaryContactIds=list(secondaryIds)
         )
         return {"contact": contact_response}
