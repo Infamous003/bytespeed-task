@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, status, Depends
 from database import create_db_and_tables, engine, get_session
 from sqlmodel import Session, select, or_
 from models import Contact, ContactCreate, LinkPrecedence, IdentificationModel
-from utils import get_contacts_by_email_or_phone
+from utils import get_contacts_by_email_or_phone, get_primary_contact
 
 app = FastAPI()
 
@@ -49,16 +49,7 @@ def identify_contact(contact: ContactCreate,
     # When there are matched contacts
     else:
         new_contact = None
-        # Here, we find the oldest(primary) record
-        # assuming the first contact to be 'primary'
-        first_contact = matchedContacts[0]
-
-        # If it's primary? cool, if not we get its linked primary contact.
-        if first_contact.linkPrecedence == LinkPrecedence.primary:
-            primary_contact = first_contact
-        else:
-            query = select(Contact).where(Contact.id == first_contact.linkedId)
-            primary_contact = session.exec(query).first()
+        primary_contact = get_primary_contact(matchedContacts, session)
 
         # We collect all the unique emails and phone nums from the matched contacts list
         # Using Set() instead of List()
