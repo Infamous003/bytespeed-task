@@ -20,3 +20,9 @@ class Contact(SQLModel, table=True):
 class ContactCreate(BaseModel):
     phoneNumber: str | None = None
     email: str | None = None
+
+class IdentificationModel(BaseModel):
+    primaryContactId: int
+    emails: list[str]
+    phoneNumbers: list[str]
+    secondaryContactIds: list[int]
