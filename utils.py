@@ -42,3 +42,16 @@ def is_new_info(contacts, incomingEmail, incomingPhone):
     if is_new_email == True or is_new_phone == True:
         return True
     return False
+
+
+def get_linked_contacts(primary_contact_id: int, session: Session):
+    linked_contacts = session.exec(
+        select(Contact).where(
+            or_(
+                Contact.id == primary_contact_id,
+                Contact.linkedId == primary_contact_id
+            )
+        )
+    ).fetchall()
+
+    return linked_contacts

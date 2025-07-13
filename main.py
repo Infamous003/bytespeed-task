@@ -2,7 +2,12 @@ from fastapi import FastAPI, HTTPException, status, Depends
 from database import create_db_and_tables, engine, get_session
 from sqlmodel import Session, select, or_
 from models import Contact, ContactCreate, LinkPrecedence, IdentificationModel
-from utils import get_contacts_by_email_or_phone, get_primary_contact, is_new_info
+from utils import (
+    get_contacts_by_email_or_phone,
+    get_primary_contact,
+    is_new_info,
+    get_linked_contacts
+)
 
 app = FastAPI()
 
@@ -68,22 +73,25 @@ def identify_contact(contact: ContactCreate,
             session.commit()
             session.refresh(new_contact)
 
-        linked_contacts = session.exec(
-            select(Contact).where(
-                or_(
-                    Contact.id == primary_contact.id,
-                    Contact.linkedId == primary_contact.id
-                )
-            )
-        ).fetchall()
-        emails = list({c.email for c in linked_contacts if c.email})
-        phoneNumbers = list({c.phoneNumber for c in linked_contacts if c.phoneNumber})
-        secondaryIds = [c.id for c in linked_contacts if c.linkPrecedence == LinkPrecedence.secondary]
+        linked_contacts = get_linked_contacts(primary_contact.id, session)
+        
+        # Using set() because we DO NOT NEED DUPLICATES
+        emails = set()
+        phoneNumbers = set()
+        secondaryIds = set()
+
+        for c in linked_contacts:
+            if c.email:
+                emails.add(c.email)
+            if c.phoneNumber:
+                phoneNumbers.add(c.phoneNumber)
+            if c.linkPrecedence == LinkPrecedence.secondary:
+                secondaryIds.add(c.id)
 
         contact_response = IdentificationModel(
             primaryContactId=primary_contact.id,
-            emails=emails,
-            phoneNumbers=phoneNumbers,
-            secondaryContactIds=secondaryIds
+            emails=list(emails),
+            phoneNumbers=list(phoneNumbers),
+            secondaryContactIds=list(secondaryIds)
         )
         return {"contact": contact_response}
