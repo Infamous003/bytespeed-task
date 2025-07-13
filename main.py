@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, status, Depends
 from database import create_db_and_tables, engine, get_session
 from sqlmodel import Session, select, or_
 from models import Contact, ContactCreate, LinkPrecedence, IdentificationModel
-from utils import get_contacts_by_email_or_phone, get_primary_contact
+from utils import get_contacts_by_email_or_phone, get_primary_contact, is_new_info
 
 app = FastAPI()
 
@@ -51,27 +51,11 @@ def identify_contact(contact: ContactCreate,
         new_contact = None
         primary_contact = get_primary_contact(matchedContacts, session)
 
-        # We collect all the unique emails and phone nums from the matched contacts list
-        # Using Set() instead of List()
-        all_unique_emails = {c.email for c in matchedContacts if c.email}
-        all_unique_phones = {c.phoneNumber for c in matchedContacts if c.phoneNumber}
-
         is_email_nonempty = contact.email != ""
         is_phone_nonempty = contact.phoneNumber != ""
 
-        # We need to find is th euser entered any new info, i.e, a new email or phoneNum
-        # ONLY if the user provides some new info do we create a new Contact in DB
-        is_new_email = False
-        is_new_phone = False
-
-        if is_email_nonempty and contact.email not in all_unique_emails:
-            is_new_email = True
-        if is_phone_nonempty and contact.phoneNumber not in all_unique_phones:
-            is_new_phone = True
-        
-        should_create_new_model = False
-        if is_new_email == True or is_new_phone == True:
-            should_create_new_model = True
+        # We ONLY create a new contact if there is NEW incoming info        
+        should_create_new_model = is_new_info(matchedContacts, contact.email, contact.phoneNumber)
 
         if should_create_new_model:
             new_contact = Contact(
