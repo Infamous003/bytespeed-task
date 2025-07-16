@@ -1,4 +1,4 @@
-# bytespeed-task
+# bitespeed-task
 
 This is a FastAPI implementation of a backend service that exposes an `/identify` endpoint to handle identification for users/contacts. It links contacts if there are any similarities(email or phone number) or creates a new record in SQLite database.
 
